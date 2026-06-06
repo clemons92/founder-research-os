@@ -37,7 +37,26 @@ export default function IndieResearchOS() {
     localStorage.setItem('ir_reports_v2', JSON.stringify(newReports));
   };
 
-  // Call the real (server) research API - this is the "agent engine" for next slice
+  // Poll helper for slice-3 async /api/research (jobId -> status -> result). Minimal to exercise the new endpoints.
+  async function pollForReport(jobId: string, maxAttempts = 25): Promise<Report> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      await new Promise((r) => setTimeout(r, 1600)); // poll interval ~1.6s (reasonable per plan)
+      const res = await fetch(`/api/research?jobId=${encodeURIComponent(jobId)}`);
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        if (res.status === 429) throw new Error(e.error || 'Rate limited');
+        throw new Error(e.error || 'Poll failed');
+      }
+      const data = await res.json();
+      if (data.status === 'completed' && data.result) return data.result as Report;
+      if (data.status === 'error') throw new Error(data.error || 'Research error');
+      // continue for pending/processing
+    }
+    throw new Error('Research timed out');
+  }
+
+  // Call the async research API (POST enqueues, returns jobId; poll until result).
+  // This keeps the existing "Run Research" CTA functional while exercising the full queue/poll/persist/rate-limit flow.
   const runResearch = async () => {
     if (!idea.trim()) return;
     setIsRunning(true);
@@ -50,8 +69,17 @@ export default function IndieResearchOS() {
         body: JSON.stringify({ idea: idea.trim() }),
       });
 
-      if (!res.ok) throw new Error('Research failed');
-      const report: Report = await res.json();
+      if (!res.ok) {
+        if (res.status === 429) {
+          const e = await res.json().catch(() => ({}));
+          throw new Error(e.error || 'Rate limit exceeded (5 research jobs per IP per day)');
+        }
+        throw new Error('Research failed');
+      }
+      const { jobId }: { jobId: string } = await res.json();
+      if (!jobId) throw new Error('No jobId from enqueue');
+
+      const report: Report = await pollForReport(jobId);
 
       setCurrentReport(report);
 
