@@ -1,7 +1,7 @@
 # Design: Reusable SaaS Launchpad
 
 **Date:** 2026-08-05
-**Status:** Approved (design) — pending spec review
+**Status:** Approved — Railway Postgres locked 2026-08-21
 **Branch:** `launchpad/saas-starter` (off `main`)
 **Supersedes:** Indie Research OS (wound down $0 — see `POSTMORTEM.md` on the `archive/2026-08-post-mortem` branch)
 
@@ -22,7 +22,7 @@ domain features on top of working auth, subscriptions, agent-payments, email, an
 | Framework | Next.js 16 | App Router, Server Actions, `proxy.ts`, Data Access Layer pattern |
 | Auth | Better Auth | email/password + Google; sessions in Postgres. (Auth.js is EOL for new projects — team merged into Better Auth Sept 2025.) |
 | ORM | Drizzle | typed schema + `drizzle-kit` migrations |
-| Database | Postgres | **host OPEN: Neon vs Railway PG** — Drizzle connection string only, zero code impact |
+| Database | Postgres | **Railway Postgres** (always-on, private network, one vendor). Swap host later via `DATABASE_URL` only. |
 | Human payments | Stripe | subscriptions + billing portal + webhook sync |
 | Agent payments | x402 | reusable `withX402()` pattern + one testnet demo route |
 | Email | Resend | verification, receipts, generic send |
@@ -30,10 +30,11 @@ domain features on top of working auth, subscriptions, agent-payments, email, an
 | Rate limiting | Postgres-backed | single datastore, no extra vendor |
 | Deploy | Railway | existing project/link |
 
-### Open decision
-- **DB host:** Neon (scale-to-zero, branching, idle-cheap, AI-agent-provisionable) vs Railway
-  Postgres (single vendor, colocated/private-network, always warm). Default to **Neon** in docs
-  if unspecified at deploy time. Swappable via `DATABASE_URL`; does not affect schema or code.
+### Database host (locked)
+- **Railway Postgres.** One vendor with the app, always warm, private-network `DATABASE_URL`.
+  Local dev/tests use Docker Postgres via the same `DATABASE_URL` shape. Neon remains a
+  documented one-line swap (different host, identical Drizzle schema) — do not add Neon
+  client code.
 
 ## 3. Module layout
 
@@ -178,7 +179,10 @@ Stripe flow, `public/experiment-*.html`, and the Indie Research OS landing conte
 
 - **Better Auth over Supabase Auth / Auth.js / Clerk.** Auth.js is EOL for new projects.
   Better Auth stores users in our Postgres, has first-class Next 16 `proxy.ts` support, and
-  keeps a single-vendor Railway (or Railway + Neon) footprint.
+  keeps a single-vendor Railway footprint.
+- **Railway Postgres over Neon.** Next.js on Railway is a long-running process, so
+  scale-to-zero and serverless pooling are not wins. One canvas, no cold starts, no
+  pooled-vs-direct connection split. Host remains swappable via `DATABASE_URL`.
 - **DAL authorization, not RLS.** `proxy.ts` is an optimistic cookie check only;
   `requireUser()` at the data layer is authoritative — the Next 16 recommended pattern.
 - **Two payment axes.** Stripe subscriptions for humans with accounts; x402 pay-per-request
@@ -190,5 +194,4 @@ Stripe flow, `public/experiment-*.html`, and the Indie Research OS landing conte
 
 ## 15. Open Questions
 
-- **DB host (Neon vs Railway Postgres).** Documented default is Neon. Swappable via
-  `DATABASE_URL`; zero code impact. Call this at first deploy, not in the schema.
+None. DB host locked to Railway Postgres on 2026-08-21.
