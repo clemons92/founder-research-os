@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadEnv } from "@/lib/env";
 
 const valid = {
@@ -51,5 +51,38 @@ describe("loadEnv", () => {
     expect(() =>
       loadEnv({ ...valid, GOOGLE_CLIENT_ID: "id-only" }),
     ).toThrow(/GOOGLE_CLIENT/);
+  });
+});
+
+describe("env", () => {
+  const previous: Record<string, string | undefined> = {};
+
+  beforeEach(() => {
+    vi.resetModules();
+    for (const [key, value] of Object.entries(valid)) {
+      previous[key] = process.env[key];
+      process.env[key] = value;
+    }
+  });
+
+  afterEach(() => {
+    for (const key of Object.keys(valid)) {
+      const prior = previous[key];
+      if (prior === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = prior;
+      }
+    }
+    vi.resetModules();
+  });
+
+  it("loads process.env once and returns the memoized result", async () => {
+    const { env } = await import("@/lib/env");
+    const first = env();
+    const second = env();
+    expect(first.DATABASE_URL).toContain("postgresql://");
+    expect(first.NETWORK).toBe("base-sepolia");
+    expect(second).toBe(first);
   });
 });
