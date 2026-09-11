@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { sendCheckoutReceipt } from "@/lib/email/receipt";
 import { env } from "@/lib/env";
 import { getStripe } from "@/lib/payments/stripe";
 import {
@@ -44,6 +45,8 @@ type CheckoutSessionLike = {
   metadata?: Record<string, string>;
   client_reference_id?: string | null;
   customer?: string | { id: string } | null;
+  customer_email?: string | null;
+  customer_details?: { email?: string | null } | null;
   subscription?: string | StripeSubscriptionLike | null;
 };
 
@@ -100,6 +103,22 @@ async function handleCheckoutCompleted(
     currentPeriodEndUnix: periodEndUnixFromSubscription(sub),
   });
   await deps.sync.upsert(row);
+  await sendReceiptAfterCheckout(session, row.priceId);
+}
+
+async function sendReceiptAfterCheckout(
+  session: CheckoutSessionLike,
+  priceId: string,
+): Promise<void> {
+  const to = session.customer_details?.email ?? session.customer_email;
+  if (!to) {
+    return;
+  }
+  try {
+    await sendCheckoutReceipt({ to, priceId });
+  } catch (error) {
+    console.error("Failed to send checkout receipt", error);
+  }
 }
 
 async function handleSubscriptionEvent(
