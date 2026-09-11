@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  customerIdFrom,
   periodEndUnixFromSubscription,
+  priceIdFromSubscription,
   subscriptionWriteFromCheckout,
   subscriptionWriteFromUpdated,
 } from "@/lib/payments/sync";
@@ -69,5 +71,50 @@ describe("subscriptionWriteFromUpdated", () => {
       currentPeriodEnd: new Date(1_800_000_000 * 1000),
     });
     expect(incoming).toEqual(frozen);
+  });
+
+  it("throws when metadata.userId is missing", () => {
+    expect(() =>
+      subscriptionWriteFromUpdated({
+        id: "sub_1",
+        status: "active",
+        customer: "cus_1",
+        items: {
+          data: [{ current_period_end: 1, price: { id: "price_test" } }],
+        },
+      }),
+    ).toThrow(/userId/);
+  });
+});
+
+describe("priceIdFromSubscription", () => {
+  it("accepts a string price id", () => {
+    expect(
+      priceIdFromSubscription({
+        id: "sub_1",
+        status: "active",
+        items: { data: [{ current_period_end: 1, price: "price_string" }] },
+      }),
+    ).toBe("price_string");
+  });
+
+  it("throws when the price is missing", () => {
+    expect(() =>
+      priceIdFromSubscription({
+        id: "sub_1",
+        status: "active",
+        items: { data: [{ current_period_end: 1 }] },
+      }),
+    ).toThrow(/price/);
+  });
+});
+
+describe("customerIdFrom", () => {
+  it("reads an object customer id", () => {
+    expect(customerIdFrom({ id: "cus_obj" })).toBe("cus_obj");
+  });
+
+  it("throws when the customer is missing", () => {
+    expect(() => customerIdFrom(null)).toThrow(/customer/);
   });
 });

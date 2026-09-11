@@ -45,7 +45,9 @@ export function SignInForm() {
     setPending(false);
     if (result.error) {
       setFormError(result.error.message ?? "Could not sign in.");
+      return;
     }
+    window.location.assign("/dashboard");
   }
 
   return (

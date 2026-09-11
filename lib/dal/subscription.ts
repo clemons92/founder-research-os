@@ -42,11 +42,24 @@ async function loadSubscriptionRow(
 export const hasActiveSubscription =
   createHasActiveSubscription(loadSubscriptionRow);
 
-export async function requireActiveSubscription(): Promise<UserDTO> {
-  const user = await requireUser();
-  const entitled = await hasActiveSubscription(user.id);
-  if (!entitled) {
-    redirect("/billing");
-  }
-  return user;
+type RedirectFn = (url: string) => never;
+
+export function createRequireActiveSubscription(
+  requireCurrentUser: () => Promise<UserDTO>,
+  isEntitled: (userId: string) => Promise<boolean>,
+  redirectTo: RedirectFn = redirect,
+): () => Promise<UserDTO> {
+  return async () => {
+    const user = await requireCurrentUser();
+    const entitled = await isEntitled(user.id);
+    if (!entitled) {
+      redirectTo("/billing");
+    }
+    return user;
+  };
 }
+
+export const requireActiveSubscription = createRequireActiveSubscription(
+  requireUser,
+  hasActiveSubscription,
+);

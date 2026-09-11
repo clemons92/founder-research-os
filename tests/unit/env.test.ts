@@ -21,7 +21,8 @@ describe("loadEnv", () => {
   });
 
   it("throws when DATABASE_URL is missing", () => {
-    const { DATABASE_URL: _, ...rest } = valid;
+    const rest: Record<string, string | undefined> = { ...valid };
+    delete rest.DATABASE_URL;
     expect(() => loadEnv(rest)).toThrow(/DATABASE_URL/);
   });
 
@@ -51,6 +52,16 @@ describe("loadEnv", () => {
     expect(() =>
       loadEnv({ ...valid, GOOGLE_CLIENT_ID: "id-only" }),
     ).toThrow(/GOOGLE_CLIENT/);
+  });
+
+  it("accepts Google when both client id and secret are set", () => {
+    const result = loadEnv({
+      ...valid,
+      GOOGLE_CLIENT_ID: "id",
+      GOOGLE_CLIENT_SECRET: "secret",
+    });
+    expect(result.GOOGLE_CLIENT_ID).toBe("id");
+    expect(result.GOOGLE_CLIENT_SECRET).toBe("secret");
   });
 });
 

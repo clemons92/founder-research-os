@@ -56,7 +56,9 @@ function post(body: string, signature?: string) {
 
 describe("POST /api/stripe/webhook", () => {
   it("upserts from checkout.session.completed after verifying the raw body", async () => {
-    const upsert = vi.fn(async (_row: SubscriptionWrite) => undefined);
+    const upsert = vi.fn<(row: SubscriptionWrite) => Promise<void>>(
+      async () => undefined,
+    );
     const rawBody = JSON.stringify({ type: "checkout.session.completed" });
     const verify = vi.fn((raw: string, signature: string) => {
       expect(raw).toBe(rawBody);

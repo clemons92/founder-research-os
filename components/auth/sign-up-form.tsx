@@ -51,7 +51,9 @@ export function SignUpForm() {
     setPending(false);
     if (result.error) {
       setFormError(result.error.message ?? "Could not create account.");
+      return;
     }
+    window.location.assign("/dashboard");
   }
 
   return (

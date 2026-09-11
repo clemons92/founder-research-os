@@ -21,6 +21,17 @@ describe("toUserDTO", () => {
     });
     expect(dto).not.toHaveProperty("createdAt");
   });
+
+  it("normalizes a missing image to null", () => {
+    const dto = toUserDTO({
+      id: "u1",
+      email: "a@b.com",
+      name: "A",
+      emailVerified: false,
+    });
+    expect(dto.image).toBeNull();
+    expect(dto.emailVerified).toBe(false);
+  });
 });
 
 describe("requireUser", () => {
