@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { env } from "@/lib/env";
 import type { UserDTO } from "@/lib/dal/user";
 import { getStripe } from "@/lib/payments/stripe";
@@ -33,6 +33,7 @@ export async function createPortalUrl(user: UserDTO): Promise<string> {
     .select({ stripeCustomerId: subscription.stripeCustomerId })
     .from(subscription)
     .where(eq(subscription.userId, user.id))
+    .orderBy(desc(subscription.currentPeriodEnd))
     .limit(1);
   const customerId = rows[0]?.stripeCustomerId;
   if (!customerId) {

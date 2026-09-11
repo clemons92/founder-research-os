@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { requireUser, type UserDTO } from "@/lib/dal/user";
 import { isEntitlingStatus } from "@/lib/payments/sync";
@@ -34,6 +34,7 @@ async function loadSubscriptionRow(
     })
     .from(subscription)
     .where(eq(subscription.userId, userId))
+    .orderBy(desc(subscription.currentPeriodEnd))
     .limit(1);
   return rows[0] ?? null;
 }
