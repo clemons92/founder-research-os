@@ -1,36 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SaaS Launchpad
 
-## Getting Started
+Reusable Next.js 16 starter for shipping auth, subscriptions, and agent payments so the next product starts on the idea.
 
-First, run the development server:
+## Stack
+
+- Next.js 16 (App Router) + TypeScript + Tailwind 4
+- Better Auth
+- Drizzle ORM + Postgres (Railway / local Docker)
+- Stripe subscriptions
+- x402 agent payments
+- Resend email
+- Zod env validation
+- Vitest + Playwright
+
+## Local setup
+
+1. Copy env and fill placeholders (or use `.env` — both are gitignored):
+
+```bash
+cp .env.example .env.local
+```
+
+2. Start local Postgres (user `launchpad`, password `launchpad`, db `launchpad` on port 5432):
+
+```bash
+docker compose up -d
+```
+
+3. Install and migrate:
+
+```bash
+npm install
+npm run db:migrate
+```
+
+4. Run the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Local Stripe webhooks (test mode):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Paste the CLI `whsec_...` into `STRIPE_WEBHOOK_SECRET`.
 
-## Learn More
+## Railway deploy
 
-To learn more about Next.js, take a look at the following resources:
+1. Create or reuse a Railway project and add the **Postgres** plugin. Railway injects `DATABASE_URL` on the private network.
+2. Set the remaining variables from `.env.example` (Better Auth secret/url, Stripe keys + price id, `EMAIL_FROM`, optional Google / Resend / x402).
+3. Start command (uses this repo's migrate script, not `drizzle-kit migrate`):
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run db:migrate && npm run start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+4. Point Stripe webhooks at `https://<your-domain>/api/stripe/webhook`.
 
-## Deploy on Vercel
+### x402 mainnet
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Dev defaults to Base Sepolia (`NETWORK=base-sepolia`). To receive real USDC on Base:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+NETWORK=base
+RESOURCE_WALLET_ADDRESS=0xYourWallet
+```
+
+Leave `RESOURCE_WALLET_ADDRESS` unset in development — the demo route returns 501.
+
+## Scripts
+
+| Script | Purpose |
+| --- | --- |
+| `npm run dev` | Next.js dev server |
+| `npm run build` / `npm start` | Production build and serve |
+| `npm run db:migrate` | Apply Drizzle migrations |
+| `npm test` | Vitest unit/integration |
+| `npm run test:watch` | Vitest watch mode |
+| `npm run test:coverage` | Coverage with 80% `lib/` thresholds |
+| `npm run test:e2e` | Playwright critical path |
+
+## Rebrand
+
+Update `lib/config/product.ts` (`name`, `tagline`, `description`) before shipping a new product on this base.
