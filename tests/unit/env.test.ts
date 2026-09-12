@@ -18,6 +18,7 @@ describe("loadEnv", () => {
     const result = loadEnv(valid);
     expect(result.DATABASE_URL).toContain("postgresql://");
     expect(result.NETWORK).toBe("base-sepolia");
+    expect(result.SOLANA_NETWORK).toBe("solana-devnet");
   });
 
   it("throws when DATABASE_URL is missing", () => {

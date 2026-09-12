@@ -40,6 +40,7 @@ describe("GET /api/paid/demo", () => {
     const { createPaidDemoGet } = await import("@/app/api/paid/demo/route");
     const GET = createPaidDemoGet({
       getWallet: () => undefined,
+      getSolanaWallet: () => undefined,
       getNetwork: () => "base-sepolia",
       store: memoryStore(),
       getServer: () => ({}) as never,
@@ -84,5 +85,19 @@ describe("GET /api/paid/demo", () => {
 
     expect(response.status).toBe(200);
     expect(body).toEqual({ ok: true, message: "paid demo" });
+  });
+
+  it("returns 402 when only a Solana wallet is configured", async () => {
+    const { createPaidDemoGet } = await import("@/app/api/paid/demo/route");
+    const GET = createPaidDemoGet({
+      getWallet: () => undefined,
+      getSolanaWallet: () => "SoL11111111111111111111111111111111111111112",
+      getSolanaNetwork: () => "solana-devnet",
+      store: memoryStore(),
+      getServer: () => ({}) as never,
+    });
+
+    const response = await GET(request());
+    expect(response.status).toBe(402);
   });
 });

@@ -16,6 +16,8 @@ const envSchema = z
     RESEND_API_KEY: z.string().optional(),
     RESOURCE_WALLET_ADDRESS: z.string().optional(),
     NETWORK: z.string().default("base-sepolia"),
+    SOLANA_RESOURCE_WALLET_ADDRESS: z.string().optional(),
+    SOLANA_NETWORK: z.string().default("solana-devnet"),
     FACILITATOR_URL: z.url().default("https://x402.org/facilitator"),
   })
   .superRefine((data, ctx) => {

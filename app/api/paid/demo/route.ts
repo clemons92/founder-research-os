@@ -14,6 +14,8 @@ const DEMO_ROUTE = "/api/paid/demo";
 export type PaidDemoDeps = {
   getWallet?: () => string | undefined;
   getNetwork?: () => string;
+  getSolanaWallet?: () => string | undefined;
+  getSolanaNetwork?: () => string;
   store?: RateLimitStore;
   getServer?: () => x402ResourceServer;
 };
@@ -42,22 +44,36 @@ export function createPaidDemoGet(deps: PaidDemoDeps = {}) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });
     }
 
-    const wallet = deps.getWallet ? deps.getWallet() : env().RESOURCE_WALLET_ADDRESS;
-    if (!isX402Configured(wallet) || !wallet) {
+    const injected = deps.getWallet !== undefined || deps.getSolanaWallet !== undefined;
+    const evmWallet = injected
+      ? deps.getWallet?.()
+      : env().RESOURCE_WALLET_ADDRESS;
+    const solanaWallet = injected
+      ? deps.getSolanaWallet?.()
+      : env().SOLANA_RESOURCE_WALLET_ADDRESS;
+    if (!isX402Configured(evmWallet, solanaWallet)) {
       return NextResponse.json(
         { error: "x402 is not configured" },
         { status: 501 },
       );
     }
 
-    const network = deps.getNetwork ? deps.getNetwork() : env().NETWORK;
+    const evmNetwork = injected ? deps.getNetwork?.() : env().NETWORK;
+    const solanaNetwork = injected
+      ? deps.getSolanaNetwork?.()
+      : env().SOLANA_NETWORK;
     const handler = async () =>
       NextResponse.json({ ok: true, message: "paid demo" });
 
     const gated = withX402(
       handler,
       {
-        accepts: demoPaymentAccepts(wallet, network),
+        accepts: demoPaymentAccepts({
+          evmWallet,
+          evmNetwork,
+          solanaWallet,
+          solanaNetwork,
+        }),
         description: "Launchpad x402 demo",
         mimeType: "application/json",
       },

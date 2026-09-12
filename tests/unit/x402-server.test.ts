@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const registerExactEvmScheme = vi.fn((server: { id: string }) => server);
+const registerExactSvmScheme = vi.fn((server: { id: string }) => server);
 const HTTPFacilitatorClient = vi.fn(function HTTPFacilitatorClient(this: {
   url: string;
 }, opts: { url: string }) {
@@ -21,6 +22,10 @@ vi.mock("@x402/evm/exact/server", () => ({
   registerExactEvmScheme,
 }));
 
+vi.mock("@x402/svm/exact/server", () => ({
+  registerExactSvmScheme,
+}));
+
 vi.mock("@/lib/env", () => ({
   env: () => ({ FACILITATOR_URL: "https://x402.org/facilitator" }),
 }));
@@ -31,6 +36,7 @@ describe("getX402Server", () => {
     HTTPFacilitatorClient.mockClear();
     x402ResourceServer.mockClear();
     registerExactEvmScheme.mockClear();
+    registerExactSvmScheme.mockClear();
   });
 
   it("builds and memoizes the resource server", async () => {
@@ -40,5 +46,6 @@ describe("getX402Server", () => {
     expect(second).toBe(first);
     expect(HTTPFacilitatorClient).toHaveBeenCalledTimes(1);
     expect(registerExactEvmScheme).toHaveBeenCalledTimes(1);
+    expect(registerExactSvmScheme).toHaveBeenCalledTimes(1);
   });
 });
