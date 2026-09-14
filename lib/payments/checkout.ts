@@ -52,6 +52,9 @@ export async function createCheckoutUrl(
     ((params) => getStripe().checkout.sessions.create(params));
   const base = appBaseUrl(deps.baseUrl);
   const priceId = deps.priceId ?? env().STRIPE_PRICE_ID;
+  if (!priceId) {
+    throw new Error("Stripe is not configured");
+  }
   const session = await createSession({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],

@@ -2,6 +2,7 @@
 
 import { requireUser } from "@/lib/dal/user";
 import { createCheckoutUrl, createPortalUrl } from "@/lib/payments/checkout";
+import { isStripeConfigured } from "@/lib/payments/stripe";
 import { enforceRateLimit } from "@/lib/ratelimit";
 
 const BILLING_ROUTE = "/billing";
@@ -20,6 +21,9 @@ async function rateLimitUser(userId: string): Promise<boolean> {
 
 export async function startCheckout(): Promise<{ url: string } | { error: string }> {
   const user = await requireUser();
+  if (!isStripeConfigured()) {
+    return { error: "Billing is not configured yet." };
+  }
   const allowed = await rateLimitUser(user.id);
   if (!allowed) {
     return { error: "Too many requests" };
@@ -36,6 +40,9 @@ export async function startCheckout(): Promise<{ url: string } | { error: string
 
 export async function openPortal(): Promise<{ url: string } | { error: string }> {
   const user = await requireUser();
+  if (!isStripeConfigured()) {
+    return { error: "Billing is not configured yet." };
+  }
   const allowed = await rateLimitUser(user.id);
   if (!allowed) {
     return { error: "Too many requests" };

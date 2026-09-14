@@ -6,11 +6,11 @@ const envSchema = z
     DATABASE_URL: z.string().min(1),
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
-    STRIPE_SECRET_KEY: z.string().startsWith("sk_"),
-    STRIPE_WEBHOOK_SECRET: z.string().min(1),
-    STRIPE_PRICE_ID: z.string().startsWith("price_"),
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_"),
-    EMAIL_FROM: z.email(),
+    STRIPE_SECRET_KEY: z.string().startsWith("sk_").optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+    STRIPE_PRICE_ID: z.string().startsWith("price_").optional(),
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().startsWith("pk_").optional(),
+    EMAIL_FROM: z.email().default("onboarding@resend.dev"),
     GOOGLE_CLIENT_ID: z.string().optional(),
     GOOGLE_CLIENT_SECRET: z.string().optional(),
     RESEND_API_KEY: z.string().optional(),
@@ -21,20 +21,6 @@ const envSchema = z
     FACILITATOR_URL: z.url().default("https://x402.org/facilitator"),
   })
   .superRefine((data, ctx) => {
-    if (data.NODE_ENV === "production" && !data.RESEND_API_KEY) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["RESEND_API_KEY"],
-        message: "RESEND_API_KEY is required in production",
-      });
-    }
-    if (data.NODE_ENV === "production" && !data.RESOURCE_WALLET_ADDRESS) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["RESOURCE_WALLET_ADDRESS"],
-        message: "RESOURCE_WALLET_ADDRESS is required in production",
-      });
-    }
     const hasId = Boolean(data.GOOGLE_CLIENT_ID);
     const hasSecret = Boolean(data.GOOGLE_CLIENT_SECRET);
     if (hasId !== hasSecret) {

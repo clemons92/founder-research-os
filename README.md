@@ -51,7 +51,7 @@ Paste the CLI `whsec_...` into `STRIPE_WEBHOOK_SECRET`.
 ## Railway deploy
 
 1. Create or reuse a Railway project and add the **Postgres** plugin. Railway injects `DATABASE_URL` on the private network.
-2. Set the remaining variables from `.env.example` (Better Auth secret/url, Stripe keys + price id, `EMAIL_FROM`, optional Google / Resend / x402).
+2. Set `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL`. Railway injects `DATABASE_URL`. Everything else in `.env.example` is optional and enables that feature (Stripe billing, Resend email, Google sign-in, x402).
 3. Start command (uses this repo's migrate script, not `drizzle-kit migrate`):
 
 ```bash

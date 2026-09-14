@@ -14,13 +14,14 @@ describe("sendEmail", () => {
     expect(send).not.toHaveBeenCalled();
   });
 
-  it("throws when apiKey is missing in production", async () => {
-    await expect(
-      sendEmail(
-        { to: "a@b.com", subject: "Hi", html: "<p>Hi</p>" },
-        { apiKey: undefined, from: "hello@example.com", nodeEnv: "production", send: vi.fn() },
-      ),
-    ).rejects.toThrow(/RESEND_API_KEY/);
+  it("skips when apiKey is missing in production", async () => {
+    const send = vi.fn();
+    const result = await sendEmail(
+      { to: "a@b.com", subject: "Hi", html: "<p>Hi</p>" },
+      { apiKey: undefined, from: "hello@example.com", nodeEnv: "production", send },
+    );
+    expect(result).toEqual({ skipped: true, reason: "no-api-key" });
+    expect(send).not.toHaveBeenCalled();
   });
 
   it("sends through the transport when an api key is present", async () => {
