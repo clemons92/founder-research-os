@@ -57,7 +57,7 @@ function resolveDeps(deps?: SendEmailDeps): SendEmailDeps {
     nodeEnv: config.NODE_ENV,
     send: (payload) => {
       if (!apiKey) {
-        throw new Error("RESEND_API_KEY is required in production");
+        throw new Error("RESEND_API_KEY is missing");
       }
       return defaultResendSend(apiKey, payload);
     },
@@ -70,9 +70,6 @@ export async function sendEmail(
 ): Promise<SendEmailResult> {
   const resolved = resolveDeps(deps);
   if (!resolved.apiKey) {
-    if (resolved.nodeEnv === "production") {
-      throw new Error("RESEND_API_KEY is required in production");
-    }
     console.info("Skipping email send: no RESEND_API_KEY", {
       to: input.to,
       subject: input.subject,

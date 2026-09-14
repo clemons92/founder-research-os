@@ -31,6 +31,16 @@ describe("createCheckoutUrl", () => {
     );
   });
 
+  it("throws when the Stripe price id is missing", async () => {
+    await expect(
+      createCheckoutUrl(user, {
+        createCheckoutSession: async () => ({ url: "https://checkout.stripe.test" }),
+        baseUrl: "http://localhost:3000",
+        priceId: "",
+      }),
+    ).rejects.toThrow(/Stripe is not configured/);
+  });
+
   it("throws when Stripe omits the session url", async () => {
     await expect(
       createCheckoutUrl(user, {

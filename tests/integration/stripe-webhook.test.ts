@@ -66,6 +66,7 @@ describe("POST /api/stripe/webhook", () => {
       return checkoutEvent;
     });
     const handler = createWebhookHandler({
+      isConfigured: () => true,
       verify,
       sync: { upsert, markCanceled: vi.fn() },
       store: memoryStore(),
@@ -87,6 +88,7 @@ describe("POST /api/stripe/webhook", () => {
 
   it("returns 400 when the signature is missing", async () => {
     const handler = createWebhookHandler({
+      isConfigured: () => true,
       verify: vi.fn(),
       sync: { upsert: vi.fn(), markCanceled: vi.fn() },
       store: memoryStore(),
@@ -97,6 +99,7 @@ describe("POST /api/stripe/webhook", () => {
 
   it("returns 400 when verify throws", async () => {
     const handler = createWebhookHandler({
+      isConfigured: () => true,
       verify: () => {
         throw new Error("bad sig");
       },
@@ -111,6 +114,7 @@ describe("POST /api/stripe/webhook", () => {
     const upsert = vi.fn();
     const markCanceled = vi.fn();
     const handler = createWebhookHandler({
+      isConfigured: () => true,
       verify: () => ({ type: "invoice.paid", data: { object: {} } }),
       sync: { upsert, markCanceled },
       store: memoryStore(),
@@ -119,5 +123,19 @@ describe("POST /api/stripe/webhook", () => {
     expect(response.status).toBe(200);
     expect(upsert).not.toHaveBeenCalled();
     expect(markCanceled).not.toHaveBeenCalled();
+  });
+
+  it("returns 501 before verification when Stripe is not configured", async () => {
+    const verify = vi.fn();
+    const handler = createWebhookHandler({
+      isConfigured: () => false,
+      verify,
+      sync: { upsert: vi.fn(), markCanceled: vi.fn() },
+      store: memoryStore(),
+    });
+    const response = await handler(post("{}", "sig_test"));
+    expect(response.status).toBe(501);
+    expect(await response.json()).toEqual({ error: "Stripe is not configured" });
+    expect(verify).not.toHaveBeenCalled();
   });
 });

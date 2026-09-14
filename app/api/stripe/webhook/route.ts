@@ -38,6 +38,7 @@ export type WebhookDeps = {
   sync: WebhookSync;
   store?: RateLimitStore;
   resolveSubscription?: (id: string) => Promise<StripeSubscriptionLike>;
+  isConfigured?: () => boolean;
 };
 
 type CheckoutSessionLike = {
@@ -163,6 +164,15 @@ async function dispatchEvent(
 
 export function createWebhookHandler(deps: WebhookDeps) {
   return async function POST(request: Request): Promise<Response> {
+    const configured =
+      deps.isConfigured?.() ?? Boolean(env().STRIPE_WEBHOOK_SECRET);
+    if (!configured) {
+      return NextResponse.json(
+        { error: "Stripe is not configured" },
+        { status: 501 },
+      );
+    }
+
     const store = deps.store ?? (await loadPostgresStore());
     const limited = await enforceRateLimit({
       ip: clientIp(request),
@@ -205,12 +215,17 @@ async function resolveStripeSubscription(
 }
 
 export const POST = createWebhookHandler({
-  verify: (rawBody, signature) =>
-    getStripe().webhooks.constructEvent(
+  verify: (rawBody, signature) => {
+    const webhookSecret = env().STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      throw new Error("Stripe is not configured");
+    }
+    return getStripe().webhooks.constructEvent(
       rawBody,
       signature,
-      env().STRIPE_WEBHOOK_SECRET,
-    ) as StripeLikeEvent,
+      webhookSecret,
+    ) as StripeLikeEvent;
+  },
   sync: {
     upsert: upsertSubscriptionFromStripe,
     markCanceled: markSubscriptionCanceled,

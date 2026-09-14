@@ -73,4 +73,17 @@ describe("sendEmail default transport", () => {
     });
     expect(result).toEqual({ skipped: true, reason: "no-api-key" });
   });
+
+  it("skips when env has no api key in production", async () => {
+    envState.RESEND_API_KEY = undefined;
+    envState.NODE_ENV = "production";
+    vi.resetModules();
+    const { sendEmail } = await import("@/lib/email/send");
+    const result = await sendEmail({
+      to: "a@b.com",
+      subject: "Hi",
+      html: "<p>Hi</p>",
+    });
+    expect(result).toEqual({ skipped: true, reason: "no-api-key" });
+  });
 });

@@ -2,23 +2,21 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { loadEnv } from "@/lib/env";
 
 const valid = {
-  NODE_ENV: "development",
   DATABASE_URL: "postgresql://launchpad:launchpad@localhost:5432/launchpad",
   BETTER_AUTH_SECRET: "a".repeat(32),
   BETTER_AUTH_URL: "http://localhost:3000",
-  STRIPE_SECRET_KEY: "sk_test_123",
-  STRIPE_WEBHOOK_SECRET: "whsec_test",
-  STRIPE_PRICE_ID: "price_test",
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_123",
-  EMAIL_FROM: "hello@example.com",
 };
 
 describe("loadEnv", () => {
-  it("returns parsed env for a valid development payload", () => {
+  it("boots with only the three core variables", () => {
     const result = loadEnv(valid);
     expect(result.DATABASE_URL).toContain("postgresql://");
     expect(result.NETWORK).toBe("base-sepolia");
     expect(result.SOLANA_NETWORK).toBe("solana-devnet");
+    expect(result.EMAIL_FROM).toBe("onboarding@resend.dev");
+    expect(result.STRIPE_SECRET_KEY).toBeUndefined();
+    expect(result.RESEND_API_KEY).toBeUndefined();
+    expect(result.RESOURCE_WALLET_ADDRESS).toBeUndefined();
   });
 
   it("throws when DATABASE_URL is missing", () => {
@@ -33,20 +31,29 @@ describe("loadEnv", () => {
     );
   });
 
-  it("requires RESEND_API_KEY in production", () => {
-    expect(() =>
-      loadEnv({ ...valid, NODE_ENV: "production" }),
-    ).toThrow(/RESEND_API_KEY/);
+  it("boots in production without Resend or a resource wallet", () => {
+    const result = loadEnv({ ...valid, NODE_ENV: "production" });
+    expect(result.NODE_ENV).toBe("production");
+    expect(result.RESEND_API_KEY).toBeUndefined();
+    expect(result.RESOURCE_WALLET_ADDRESS).toBeUndefined();
   });
 
-  it("requires RESOURCE_WALLET_ADDRESS in production", () => {
+  it("accepts optional Stripe keys when they have a valid format", () => {
+    const result = loadEnv({
+      ...valid,
+      STRIPE_SECRET_KEY: "sk_test_123",
+      STRIPE_WEBHOOK_SECRET: "whsec_test",
+      STRIPE_PRICE_ID: "price_test",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_123",
+    });
+    expect(result.STRIPE_SECRET_KEY).toBe("sk_test_123");
+    expect(result.STRIPE_PRICE_ID).toBe("price_test");
+  });
+
+  it("rejects STRIPE_SECRET_KEY that does not start with sk_", () => {
     expect(() =>
-      loadEnv({
-        ...valid,
-        NODE_ENV: "production",
-        RESEND_API_KEY: "re_test",
-      }),
-    ).toThrow(/RESOURCE_WALLET_ADDRESS/);
+      loadEnv({ ...valid, STRIPE_SECRET_KEY: "not-a-key" }),
+    ).toThrow(/STRIPE_SECRET_KEY/);
   });
 
   it("rejects Google client id without secret", () => {
